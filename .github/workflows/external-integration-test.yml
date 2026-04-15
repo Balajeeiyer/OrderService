@@ -138,10 +138,19 @@ jobs:
           INTEGRATION_RESULT: ${{ steps.integration-tests.outcome }}
           PERFORMANCE_RESULT: ${{ steps.performance-tests.outcome }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.CROSS_REPO_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const [owner, repo] = process.env.MOCKAI_REPO.split('/');
             const prNumber = parseInt(process.env.MOCKAI_PR);
+
+            const hasCrossRepoToken = '${{ secrets.CROSS_REPO_TOKEN }}' !== '';
+
+            if (!hasCrossRepoToken) {
+              console.log('⚠️ WARNING: CROSS_REPO_TOKEN not configured in OrderService.');
+              console.log('Cannot post results back to MockAI PR.');
+              console.log('Add CROSS_REPO_TOKEN secret to OrderService repository to enable cross-repo reporting.');
+              return;
+            }
 
             const schemaIcon = process.env.SCHEMA_RESULT === 'success' ? '✅' : '❌';
             const integrationIcon = process.env.INTEGRATION_RESULT === 'success' ? '✅' : '❌';
@@ -169,12 +178,22 @@ jobs:
             ---
             *Automated integration testing triggered by MockAI PR changes*`;
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number: prNumber,
-              body: comment
-            });
+            try {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: comment
+              });
+              console.log('✅ Successfully posted comment to MockAI PR #' + prNumber);
+            } catch (error) {
+              console.error('❌ Failed to post comment:', error.message);
+              if (error.status === 404) {
+                console.error('   MockAI repository or PR not found.');
+              } else if (error.status === 403) {
+                console.error('   Permission denied. Token lacks permissions.');
+              }
+            }
 
       - name: Create GitHub Check
         if: github.event_name == 'repository_dispatch' && steps.mockai-info.outputs.pr_number != ''
@@ -186,9 +205,18 @@ jobs:
           INTEGRATION_RESULT: ${{ steps.integration-tests.outcome }}
           PERFORMANCE_RESULT: ${{ steps.performance-tests.outcome }}
         with:
-          github-token: ${{ secrets.CROSS_REPO_TOKEN }}
+          github-token: ${{ secrets.CROSS_REPO_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const [owner, repo] = process.env.MOCKAI_REPO.split('/');
+
+            const hasCrossRepoToken = '${{ secrets.CROSS_REPO_TOKEN }}' !== '';
+
+            if (!hasCrossRepoToken) {
+              console.log('⚠️ WARNING: CROSS_REPO_TOKEN not configured in OrderService.');
+              console.log('Cannot create GitHub Check on MockAI PR.');
+              console.log('Add CROSS_REPO_TOKEN secret to OrderService repository.');
+              return;
+            }
 
             const conclusion = (
               process.env.SCHEMA_RESULT === 'success' &&
@@ -196,19 +224,29 @@ jobs:
               process.env.PERFORMANCE_RESULT === 'success'
             ) ? 'success' : 'failure';
 
-            await github.rest.checks.create({
-              owner,
-              repo,
-              name: 'OrderService Integration Tests',
-              head_sha: process.env.MOCKAI_SHA,
-              status: 'completed',
-              conclusion,
-              details_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`,
-              output: {
-                title: conclusion === 'success' ? 'All tests passed' : 'Some tests failed',
-                summary: `Schema: ${process.env.SCHEMA_RESULT}, Integration: ${process.env.INTEGRATION_RESULT}, Performance: ${process.env.PERFORMANCE_RESULT}`
+            try {
+              await github.rest.checks.create({
+                owner,
+                repo,
+                name: 'OrderService Integration Tests',
+                head_sha: process.env.MOCKAI_SHA,
+                status: 'completed',
+                conclusion,
+                details_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`,
+                output: {
+                  title: conclusion === 'success' ? 'All tests passed' : 'Some tests failed',
+                  summary: `Schema: ${process.env.SCHEMA_RESULT}, Integration: ${process.env.INTEGRATION_RESULT}, Performance: ${process.env.PERFORMANCE_RESULT}`
+                }
+              });
+              console.log('✅ Successfully created GitHub Check on MockAI PR');
+            } catch (error) {
+              console.error('❌ Failed to create GitHub Check:', error.message);
+              if (error.status === 404) {
+                console.error('   MockAI repository not found or SHA invalid.');
+              } else if (error.status === 403) {
+                console.error('   Permission denied. Token needs checks:write permission.');
               }
-            });
+            }
 
       - name: Cleanup
         if: always()
