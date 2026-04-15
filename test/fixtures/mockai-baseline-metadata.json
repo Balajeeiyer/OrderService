@@ -1,0 +1,144 @@
+{
+  "edmx:Edmx": {
+    "$": {
+      "xmlns:edmx": "http://docs.oasis-open.org/odata/ns/edmx",
+      "Version": "4.0"
+    },
+    "edmx:DataServices": {
+      "Schema": {
+        "$": {
+          "xmlns": "http://docs.oasis-open.org/odata/ns/edm",
+          "Namespace": "ProductService"
+        },
+        "EntityType": [
+          {
+            "$": {
+              "Name": "Products"
+            },
+            "Key": {
+              "PropertyRef": {
+                "$": {
+                  "Name": "ID"
+                }
+              }
+            },
+            "Property": [
+              {
+                "$": {
+                  "Name": "ID",
+                  "Type": "Edm.Guid",
+                  "Nullable": "false"
+                }
+              },
+              {
+                "$": {
+                  "Name": "name",
+                  "Type": "Edm.String",
+                  "MaxLength": "100",
+                  "Nullable": "false"
+                }
+              },
+              {
+                "$": {
+                  "Name": "description",
+                  "Type": "Edm.String",
+                  "MaxLength": "500"
+                }
+              },
+              {
+                "$": {
+                  "Name": "price",
+                  "Type": "Edm.Decimal",
+                  "Precision": "10",
+                  "Scale": "2",
+                  "Nullable": "false"
+                }
+              },
+              {
+                "$": {
+                  "Name": "currency",
+                  "Type": "Edm.String",
+                  "MaxLength": "3",
+                  "Nullable": "false"
+                }
+              },
+              {
+                "$": {
+                  "Name": "stock",
+                  "Type": "Edm.Int32",
+                  "Nullable": "false"
+                }
+              },
+              {
+                "$": {
+                  "Name": "isActive",
+                  "Type": "Edm.Boolean",
+                  "Nullable": "false"
+                }
+              },
+              {
+                "$": {
+                  "Name": "createdAt",
+                  "Type": "Edm.DateTimeOffset"
+                }
+              },
+              {
+                "$": {
+                  "Name": "createdBy",
+                  "Type": "Edm.String",
+                  "MaxLength": "100"
+                }
+              },
+              {
+                "$": {
+                  "Name": "modifiedAt",
+                  "Type": "Edm.DateTimeOffset"
+                }
+              },
+              {
+                "$": {
+                  "Name": "modifiedBy",
+                  "Type": "Edm.String",
+                  "MaxLength": "100"
+                }
+              }
+            ]
+          }
+        ],
+        "EntityContainer": {
+          "$": {
+            "Name": "EntityContainer"
+          },
+          "EntitySet": {
+            "$": {
+              "Name": "Products",
+              "EntityType": "ProductService.Products"
+            }
+          },
+          "FunctionImport": [
+            {
+              "$": {
+                "Name": "getLowStockProducts",
+                "Function": "ProductService.getLowStockProducts"
+              }
+            }
+          ],
+          "ActionImport": [
+            {
+              "$": {
+                "Name": "updateStock",
+                "Action": "ProductService.updateStock"
+              }
+            },
+            {
+              "$": {
+                "Name": "toggleActive",
+                "Action": "ProductService.toggleActive"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
