@@ -9,7 +9,10 @@
     "build": "cds build",
     "deploy": "cds deploy",
     "test": "jest",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest test/integration/mockai-integration.test.js",
+    "test:schema": "jest test/integration/schema-validator.test.js",
+    "test:performance": "node test/integration/performance-benchmark.js"
   },
   "keywords": [
     "SAP",

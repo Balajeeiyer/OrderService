@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # MockAI Products API Service
+  mockai:
+    build:
+      context: ./mockai
+      dockerfile: Dockerfile
+    container_name: mockai-service
+    ports:
+      - "4004:4004"
+    environment:
+      - NODE_ENV=production
+      - PORT=4004
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004/products"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - integration-test-network
+
+  # OrderService - Service Under Test
+  orderservice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orderservice
+    ports:
+      - "4005:4005"
+    environment:
+      - NODE_ENV=production
+      - PORT=4005
+      - MOCKAI_SERVICE_URL=http://mockai:4004/products
+      - MOCKAI_TIMEOUT=5000
+      - MOCKAI_RETRY_ATTEMPTS=3
+      - MOCKAI_CIRCUIT_BREAKER_THRESHOLD=50
+      - MOCKAI_CIRCUIT_BREAKER_TIMEOUT=30000
+    depends_on:
+      mockai:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4005/orders"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - integration-test-network
+
+  # Integration Test Runner
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: integration-tests
+    environment:
+      - MOCKAI_SERVICE_URL=http://mockai:4004/products
+      - ORDERSERVICE_URL=http://orderservice:4005/orders
+      - NODE_ENV=test
+    depends_on:
+      mockai:
+        condition: service_healthy
+      orderservice:
+        condition: service_healthy
+    command: npm run test:integration
+    volumes:
+      - ./test/results:/app/test/results
+    networks:
+      - integration-test-network
+
+  # Performance Test Runner
+  performance-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: performance-tests
+    environment:
+      - MOCKAI_SERVICE_URL=http://mockai:4004/products
+      - NODE_ENV=test
+    depends_on:
+      mockai:
+        condition: service_healthy
+    command: node test/integration/performance-benchmark.js
+    volumes:
+      - ./test/results:/app/test/results
+    networks:
+      - integration-test-network
+    profiles:
+      - performance
+
+networks:
+  integration-test-network:
+    driver: bridge
+
+volumes:
+  test-results:

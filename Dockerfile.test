@@ -1,0 +1,23 @@
+# Test Dockerfile for Integration Tests
+FROM node:18-alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies for testing)
+RUN npm ci
+
+# Copy application files
+COPY . .
+
+# Create results directory
+RUN mkdir -p test/results
+
+# Default command (can be overridden)
+CMD ["npm", "test"]
