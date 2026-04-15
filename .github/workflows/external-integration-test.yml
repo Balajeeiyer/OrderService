@@ -2,7 +2,7 @@ name: External Integration Test
 
 on:
   repository_dispatch:
-    types: [mockai-integration-test]
+    types: [external-integration-test]
   workflow_dispatch:
     inputs:
       mockai_pr_number:
